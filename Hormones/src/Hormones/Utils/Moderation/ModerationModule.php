@@ -75,7 +75,7 @@ class ModerationModule implements Listener{
 			}elseif($penalty->target->matchesPlayer($player = $event->getPlayer())){
 				if($organName = $this->plugin->getConfig()->getNested("moderation.banTransfer", false)){
 					$this->plugin->getServer()->getScheduler()->scheduleAsyncTask(new FindOrganicTissueTask(
-						$this->plugin, $event->getPlayer(), $organName, null, function() use ($organName){
+						$this->plugin, $event->getPlayer(), "BanTransfer", $organName, null, function() use ($organName){
 						$this->plugin->getLogger()->critical("Unknown hormone $organName as defined in config.yml:moderation.banTransfer");
 					}, function() use ($player, $penalty){
 						$player->kick($penalty->getNotifyMessage());

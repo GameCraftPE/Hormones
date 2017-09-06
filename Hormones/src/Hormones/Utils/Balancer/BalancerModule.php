@@ -24,12 +24,14 @@ use libasynql\result\MysqlErrorResult;
 use libasynql\result\MysqlResult;
 use libasynql\result\MysqlSelectResult;
 use pocketmine\event\Listener;
-use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerLoginEvent;
 use pocketmine\event\server\QueryRegenerateEvent;
 use pocketmine\Player;
 
 class BalancerModule implements Listener{
+	const ALWAYS_TRANSFER_NONE = -1;
+	const ALWAYS_TRANSFER_LAST = -2;
+
 	private $plugin;
 
 	/** @var string */
@@ -72,16 +74,16 @@ class BalancerModule implements Listener{
 
 		$this->stopTransfer = (bool) $this->getPlugin()->getConfig()->getNested("balancer.stopTransfer", false);
 
-		$this->alwaysTransferName = $this->getPlugin()->getConfig()->getNested("balancer.stopTransfer", false);
+		$this->alwaysTransferName = $this->getPlugin()->getConfig()->getNested("balancer.alwaysTransfer", false);
 		if(!$this->alwaysTransferName){
 			$this->alwaysTransferName = null;
 		}else{
 			$this->alwaysTransferName = strtolower((string) $this->alwaysTransferName);
 		}
 		if($this->alwaysTransferName === null){
-			$this->alwaysTransferOrgan = -1;
+			$this->alwaysTransferOrgan = self::ALWAYS_TRANSFER_NONE;
 		}elseif($this->alwaysTransferName === "last"){
-			$this->alwaysTransferOrgan = -2;
+			$this->alwaysTransferOrgan = self::ALWAYS_TRANSFER_LAST;
 		}else{
 			$result = MysqlResult::executeQuery($this->getPlugin()->connectMainThreadMysql(), /** @lang MySQL */
 				"SELECT organId FROM hormones_organs WHERE name = ?", [["s", $this->alwaysTransferName]]);
@@ -149,10 +151,10 @@ class BalancerModule implements Listener{
 
 		$player = $event->getPlayer();
 		if($this->getAlwaysTransferDestination() >= 0 && !$this->hasAlwaysExempt($player->getName())){
-			$task = new FindOrganicTissueTask($this->getPlugin(), $player, $this->getAlwaysTransferDestinationName(), $this->getAlwaysTransferDestination());
+			$task = new FindOrganicTissueTask($this->getPlugin(), $player, "AlwaysTransfer", $this->getAlwaysTransferDestinationName(), $this->getAlwaysTransferDestination());
 			$this->getPlugin()->getServer()->getScheduler()->scheduleAsyncTask($task);
-		}elseif($this->getAlwaysTransferDestination() === -1 && !$this->hasAlwaysExempt($player->getName())){ // last
-			$task = new FindLastOrganicTissueTask($this, $player);
+		}elseif($this->getAlwaysTransferDestination() === self::ALWAYS_TRANSFER_LAST && !$this->hasAlwaysExempt($player->getName())){ // last
+			$task = new FindLastOrganicTissueTask($this, $player, "AlwaysTransfer (Last)");
 			$this->getPlugin()->getServer()->getScheduler()->scheduleAsyncTask($task);
 		}
 
@@ -178,12 +180,6 @@ class BalancerModule implements Listener{
 					$this->getPlugin()->getLogger()->debug("Event cancelled");
 				}
 			}
-		}
-	}
-
-	public function e_onJoin(PlayerJoinEvent $event){
-		if($this->logsLast()){
-			$this->plugin->getServer()->getScheduler()->scheduleAsyncTask(new UpdateAccountStateTask($this->getPlugin(), $event->getPlayer()));
 		}
 	}
 

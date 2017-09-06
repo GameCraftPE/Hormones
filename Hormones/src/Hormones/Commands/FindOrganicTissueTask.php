@@ -31,11 +31,19 @@ class FindOrganicTissueTask extends QueryMysqlTask{
 	protected $organName;
 	/** @var int|null */
 	protected $organId;
+	/** @var string */
+	protected $tissueId;
+	/**
+	 * @var string
+	 */
+	protected $cause;
 
-	public function __construct(HormonesPlugin $plugin, Player $player, string $organName, int $organId = null, callable $onUnknownOrgan = null, callable $onServersFull = null){
+	public function __construct(HormonesPlugin $plugin, Player $player, string $cause, string $organName, int $organId = null, callable $onUnknownOrgan = null, callable $onServersFull = null){
 		parent::__construct($plugin->getCredentials(), [$plugin, $player, $onUnknownOrgan, $onServersFull]);
 		$this->organName = $organName;
 		$this->organId = $organId;
+		$this->tissueId = $plugin->getTissueId();
+		$this->cause = $cause;
 	}
 
 	protected function execute(){
@@ -54,9 +62,9 @@ class FindOrganicTissueTask extends QueryMysqlTask{
 			}
 		}
 		$this->setResult(MysqlResult::executeQuery($db, "SELECT ip, port, displayName FROM hormones_tissues
-				WHERE organId = ? AND UNIX_TIMESTAMP() - UNIX_TIMESTAMP(lastOnline) < 5 AND maxSlots > usedSlots
+				WHERE organId = ? AND UNIX_TIMESTAMP() - UNIX_TIMESTAMP(lastOnline) < 5 AND maxSlots > usedSlots AND tissueId <> ?
 				ORDER BY (maxSlots - usedSlots) DESC, maxSlots ASC LIMIT 1",
-			[["i", $this->organId]]));
+			[["i", $this->organId], ["s", $this->tissueId]]));
 	}
 
 	public function onCompletion(Server $server){
@@ -77,7 +85,7 @@ class FindOrganicTissueTask extends QueryMysqlTask{
 		}elseif($result instanceof MysqlSelectResult){
 			if(count($result->rows) === 1){
 				$player->transfer($result->rows[0]["ip"], $result->rows[0]["port"],
-					"Transferring you to the least full $this->organName server: " . $result->rows[0]["displayName"]);
+					"$this->cause: Transferring you to the least full $this->organName server: " . $result->rows[0]["displayName"]);
 			}else{
 				if(is_callable($onServersFull)){
 					$onServersFull();

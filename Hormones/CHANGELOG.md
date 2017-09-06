@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Changed
 - Update for 3.0.0-ALPHA7, backward incompatible
 - Fixed `UnknownHormoneEvent` not providing the receptors
+- Added more transfer modes
 
 ### Fixed
 - [issue16]

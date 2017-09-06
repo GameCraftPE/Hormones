@@ -28,11 +28,11 @@ class FindLastOrganicTissueTask extends FindOrganicTissueTask{
 	private $fallbackName;
 	private $playerName;
 
-	public function __construct(BalancerModule $module, Player $player){
+	public function __construct(BalancerModule $module, Player $player, string $cause){
 		$this->fallbackId = $module->getAlwaysFallbackDestination();
 		$this->fallbackName = $module->getAlwaysFallbackName();
 		$this->playerName = $player->getName();
-		parent::__construct($module->getPlugin(), $player, "", null, function() use ($player){
+		parent::__construct($module->getPlugin(), $player, $cause, "", null, function() use ($player){
 			$player->kick("All $this->fallbackName servers are full/offline!");
 		});
 	}
@@ -55,9 +55,8 @@ class FindLastOrganicTissueTask extends FindOrganicTissueTask{
 				return;
 			}
 			// all tissues in last organ are full, go to fallback
-		}else{
-			// no last organ, also go to fallback
 		}
+		// else no last organ, also go to fallback
 		$this->organId = $this->fallbackId;
 		$this->organName = $this->fallbackName;
 		parent::execute();
