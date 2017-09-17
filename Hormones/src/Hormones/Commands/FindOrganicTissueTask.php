@@ -61,9 +61,8 @@ class FindOrganicTissueTask extends QueryMysqlTask{
 				throw $result->getException();
 			}
 		}
-		$this->setResult(MysqlResult::executeQuery($db, "SELECT ip, port, displayName FROM hormones_tissues
-				WHERE organId = ? AND UNIX_TIMESTAMP() - UNIX_TIMESTAMP(lastOnline) < 5 AND maxSlots > usedSlots AND tissueId <> ?
-				ORDER BY (maxSlots - usedSlots) DESC, maxSlots ASC LIMIT 1",
+		$this->setResult(MysqlResult::executeQuery($db, "SELECT ip, port, displayName, usedSlots, maxSlots FROM hormones_tissues
+				WHERE organId = ? AND UNIX_TIMESTAMP() - UNIX_TIMESTAMP(lastOnline) < 5 AND tissueId <> ?",
 			[["i", $this->organId], ["s", $this->tissueId]]));
 	}
 
@@ -84,13 +83,23 @@ class FindOrganicTissueTask extends QueryMysqlTask{
 			return;
 		}elseif($result instanceof MysqlSelectResult){
 			if(count($result->rows) === 1){
-				$player->transfer($result->rows[0]["ip"], $result->rows[0]["port"],
-					"$this->cause: Transferring you to the least full $this->organName server: " . $result->rows[0]["displayName"]);
+				if($result->rows[0]["usedSlots"] < $result->rows[0]["maxSlots"]){
+					$player->transfer($result->rows[0]["ip"], $result->rows[0]["port"],
+						"$this->cause: Transferring you to the least full $this->organName server: " . $result->rows[0]["displayName"]);
+				}else{
+					if($player->hasPermission("rank.lapis")){
+						if($result->rows[0]["usedSlots"] >= $result->rows[0]["maxSlots"]){
+							$player->transfer($result->rows[0]["ip"], $result->rows[0]["port"],"$this->cause: Transferring you to the least full $this->organName server: " . $result->rows[0]["displayName"]);
+						}
+					}else{
+						$player->sendMessage(TextFormat::YELLOW . "All $this->organName servers are full!");
+					}
+				}
 			}else{
 				if(is_callable($onServersFull)){
 					$onServersFull();
 				}else{
-					$player->sendMessage(TextFormat::YELLOW . "All $this->organName servers are full/offline!");
+						$player->sendMessage(TextFormat::YELLOW . "All $this->organName servers are offline!");
 				}
 			}
 		}else{

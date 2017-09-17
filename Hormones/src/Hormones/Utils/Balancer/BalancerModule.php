@@ -25,8 +25,11 @@ use libasynql\result\MysqlResult;
 use libasynql\result\MysqlSelectResult;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerLoginEvent;
+use pocketmine\event\player\PlayerQuitEvent;
+use pocketmine\event\player\PlayerKickEvent;
 use pocketmine\event\server\QueryRegenerateEvent;
 use pocketmine\Player;
+use pocketmine\utils\Config;
 
 class BalancerModule implements Listener{
 	const ALWAYS_TRANSFER_NONE = -1;
@@ -148,7 +151,7 @@ class BalancerModule implements Listener{
 	 */
 	public function e_onLogin(PlayerLoginEvent $event){
 		// We can't check permissions here because permission plugins have not defined them yet
-
+		
 		$player = $event->getPlayer();
 		if($this->getAlwaysTransferDestination() >= 0 && !$this->hasAlwaysExempt($player->getName())){
 			$task = new FindOrganicTissueTask($this->getPlugin(), $player, "AlwaysTransfer", $this->getAlwaysTransferDestinationName(), $this->getAlwaysTransferDestination());
@@ -161,8 +164,6 @@ class BalancerModule implements Listener{
 		if($this->isTransferUponFull()){
 			if(count($this->getPlugin()->getServer()->getOnlinePlayers()) >= $this->getFullLimit()){ // getOnlinePlayers() doesn't include the current player
 				if($this->getPlugin()->getLymphResult()->altServer === null){
-					$event->setCancelled();
-					$event->setKickMessage("All {$this->getPlugin()->getOrganName()} servers are full!");
 					return;
 				}
 				$balEv = new PlayerBalancedEvent($this->getPlugin(), $player, $this->getPlugin()->getLymphResult()->altServer);
